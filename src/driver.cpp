@@ -2,6 +2,7 @@
 #include "SortingSystem.h"
 #include "OnlineSystem.h"
 #include "BeeSystem.h"
+#include "SimpleSystem.h"
 #include "ID.h"
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
@@ -131,6 +132,8 @@ int main(int argc, char** argv)
 		("prioritize_start", po::value<bool>()->default_value(true), "Prioritize waiting at start locations")
 		("suboptimal_bound", po::value<double>()->default_value(1), "Suboptimal bound for ECBS")
 		("log", po::value<bool>()->default_value(false), "save the search trees (and the priority trees)")
+		("starts", po::value<std::string>()->default_value(""), "input start locations")
+		("tasks", po::value<std::string>()->default_value(""), "input tasks")
 		;
 	clock_t start_time = clock();
 	po::variables_map vm;
@@ -175,7 +178,27 @@ int main(int argc, char** argv)
 	}
 
 
-	if (vm["scenario"].as<string>() == "KIVA")
+	if (vm["scenario"].as<string>()=="SIMPLE") {
+
+		std::cout<<"map: "<<vm["map"].as<std::string>()<<std::endl;
+		std::cout<<"starts: "<<vm["starts"].as<std::string>()<<std::endl;
+		std::cout<<"tasks: "<<vm["tasks"].as<std::string>()<<std::endl;
+		
+		SimpleGrid G;
+		if (!G.load_map(vm["map"].as<std::string>()))
+			return -1;
+		if (!G.load_starts(vm["starts"].as<std::string>()))
+			return -1;
+		if (!G.load_tasks(vm["tasks"].as<std::string>()))
+			return -1;
+		MAPFSolver* solver = set_solver(G, vm);
+		SimpleSystem system(G, *solver);
+		set_parameters(system, vm);
+		G.preprocessing(system.consider_rotation);
+		system.simulate(vm["simulation_time"].as<int>());
+		return 0;
+	}
+	else if (vm["scenario"].as<string>() == "KIVA")
 	{
 		KivaGrid G;
 		if (!G.load_map(vm["map"].as<std::string>()))
